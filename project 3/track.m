@@ -13,7 +13,7 @@ ref_points = detectHarrisFeatures(gray_img);
 ref_points = ref_points.Location;
 
 % size of generated view set
-times = 500;
+times = 10;
 
 % store affine transformation matrix
 transformations = cell(times, 1);
@@ -70,6 +70,52 @@ K = 200;
 
 selected_points = ref_points(sortingIndices(1:K), :);
 
+patches = cell(K*times, 1);
+
+patchWidth = 33;
+patchCenter = (patchWidth - 1) / 2;
+
+for i = 1:times
+    A = transformations{i};
+    
+    tform = affine2d(A');
+    tempImage = imwarp(gray_img, tform);
+    
+    temp_x = selected_points(:, 1) - size(gray_img, 2) / 2;
+    temp_y = selected_points(:, 2) - size(gray_img, 1) / 2;
+    
+    points = A'*[temp_x';temp_y';ones(1, K)];
+    
+    points(1, :) = points(1, :) + size(tempImage, 2) / 2;
+    points(2, :) = points(2, :) + size(tempImage, 1) / 2;
+    points(3, :) = [];
+    
+    points = round(points);
+    
+    for j = 1:K
+        
+        % if patch is inside the transformed image
+        if (points(1, j) - patchCenter >= 1) && (points(2, j) - patchCenter >= 1)...
+                && (points(1, j) + patchCenter <= size(tempImage, 2)) ...
+                && (points(2, j) + patchCenter <= size(tempImage, 1))
+            
+            patches{K*(i-1)+j} = tempImage((points(2, j) - patchCenter):(points(2, j) + patchCenter)...
+                                           ,(points(1, j) - patchCenter):(points(1, j) + patchCenter));
+        else
+            tempPatch = zeros(patchWidth, patchWidth);
+            for r = (points(2, j) - patchCenter):(points(2, j) + patchCenter)
+                for c = (points(1, j) - patchCenter):(points(1, j) + patchCenter)
+                    if r >= 1 && r <= size(tempImage, 1) && c >= 1 && c <= size(tempImage, 2)
+                        tempPatch(r - (points(2, j) - patchCenter) + 1, c - (points(1, j) - patchCenter) + 1)...
+                            = tempImage(r, c);
+                    end
+                end
+            end
+            patches{K*(i-1)+j} = tempPatch;
+        end
+        patches{K*(i-1)+j} = imnoise(patches{K*(i-1)+j}, 'gaussian', 0, 0.01);
+    end
+end
 
 figure(1);
 imshow(original_img); hold on;
@@ -78,7 +124,3 @@ scatter(selected_points(:, 1), selected_points(:, 2));
 figure(2);
 imshow(original_img); hold on;
 scatter(ref_points(:, 1), ref_points(:, 2));
-
-figure(3);
-imshow(J); hold on;
-plot(points);
