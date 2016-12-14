@@ -74,7 +74,7 @@ selected_points = ref_points(sortingIndices(1:K), :);
 
 patches = cell(K*times, 1);
 
-patchWidth = 41;
+patchWidth = 33;
 
 for i = 1:times
     A = transformations{i};
@@ -150,4 +150,4 @@ end
 % imshow(original_img); hold on;
 % scatter(ref_points(:, 1), ref_points(:, 2));
 
-save('imagePatches.mat', 'patches');
+save('imagePatches.mat', 'patches', 'K');

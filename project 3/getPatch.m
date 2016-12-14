@@ -1,7 +1,7 @@
 function [patch] = getPatch(img, point, patchWidth)
 
     patchCenter = (patchWidth - 1) / 2;
-    patch = randi(255, patchWidth, patchWidth);
+    patch = imnoise(zeros(patchWidth, patchWidth), 'gaussian', 0, 0.1);
         
     % if patch is inside the transformed image
     if (point(1, 1) - patchCenter >= 1) && (point(2, 1) - patchCenter >= 1)...

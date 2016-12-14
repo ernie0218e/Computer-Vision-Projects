@@ -1,0 +1,14 @@
+%
+% Filename: optTress.m
+% Purpose: find function q(x) which can maxmize entropy of each subset at
+%          given node
+% Input:  patches - dataset at given node
+%         label - label corresponded to given data
+%         classNum - number of classes of given dataset
+% Output:
+%
+function [pt_m1, pt_m2, subset_left, subset_center, subset_right] ...
+    = optTree(patches, label, classNum)
+
+
+end

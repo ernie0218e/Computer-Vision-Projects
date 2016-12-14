@@ -1,0 +1,23 @@
+clear;
+
+data = load('imagePatches.mat');
+
+D = data.patches{1,
+
+patches = zeros(
+patches = reshape(patches{1:end}, [], size(patches, 1));
+
+classNum = data.K;
+
+% construct random tree
+depth = 5;
+
+tree = cell((3^(depth+1) - 1)/2, 1);
+
+
+
+count = (3^(depth) - 1)/2 - 1;
+for k = 1:count
+    
+    
+end
