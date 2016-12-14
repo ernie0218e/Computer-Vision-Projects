@@ -1,0 +1,9 @@
+[Tt]emp
+*.[Cc]ache
+*.bak
+*.log 
+*.DS_Store
+[Tt]humbs.db 
+*.mat
+*.jpg
+*.zip
