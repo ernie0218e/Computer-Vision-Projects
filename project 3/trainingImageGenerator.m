@@ -13,7 +13,7 @@ ref_points = detectHarrisFeatures(gray_img);
 ref_points = ref_points.Location;
 
 % size of generated view set
-times = 100;
+times = 10;
 
 % store affine transformation matrix
 transformations = cell(times, 1);
@@ -40,6 +40,7 @@ for t = 1:times
 
     points = detectHarrisFeatures(J);
     
+    % ---- rotate the points ----
     temp_x = points.Location(:,1);
     temp_y = points.Location(:,2);
     
@@ -52,6 +53,7 @@ for t = 1:times
     telta_points(1, :) = telta_points(1, :) + size(gray_img, 2) / 2;
     telta_points(2, :) = telta_points(2, :) + size(gray_img, 1) / 2;
     telta_points(3, :) = [];
+    % --------------------------
     
     for i = 1:size(ref_points, 1)
         for j = 1:size(telta_points, 2)
@@ -72,8 +74,7 @@ selected_points = ref_points(sortingIndices(1:K), :);
 
 patches = cell(K*times, 1);
 
-patchWidth = 33;
-patchCenter = (patchWidth - 1) / 2;
+patchWidth = 41;
 
 for i = 1:times
     A = transformations{i};
@@ -81,6 +82,7 @@ for i = 1:times
     tform = affine2d(A');
     tempImage = imwarp(gray_img, tform);
     
+    % ---- rotate the points ----
     temp_x = selected_points(:, 1) - size(gray_img, 2) / 2;
     temp_y = selected_points(:, 2) - size(gray_img, 1) / 2;
     
@@ -89,32 +91,56 @@ for i = 1:times
     points(1, :) = points(1, :) + size(tempImage, 2) / 2;
     points(2, :) = points(2, :) + size(tempImage, 1) / 2;
     points(3, :) = [];
-    
     points = round(points);
+    % --------------------------
     
+    % for each keypoint
     for j = 1:K
         
-        % if patch is inside the transformed image
-        if (points(1, j) - patchCenter >= 1) && (points(2, j) - patchCenter >= 1)...
-                && (points(1, j) + patchCenter <= size(tempImage, 2)) ...
-                && (points(2, j) + patchCenter <= size(tempImage, 1))
-            
-            patches{K*(i-1)+j} = tempImage((points(2, j) - patchCenter):(points(2, j) + patchCenter)...
-                                           ,(points(1, j) - patchCenter):(points(1, j) + patchCenter));
-        else
-            tempPatch = zeros(patchWidth, patchWidth);
-            for r = (points(2, j) - patchCenter):(points(2, j) + patchCenter)
-                for c = (points(1, j) - patchCenter):(points(1, j) + patchCenter)
-                    if r >= 1 && r <= size(tempImage, 1) && c >= 1 && c <= size(tempImage, 2)
-                        tempPatch(r - (points(2, j) - patchCenter) + 1, c - (points(1, j) - patchCenter) + 1)...
-                            = tempImage(r, c);
-                    end
-                end
-            end
-        end
+        tempPatch = getPatch(tempImage, points(:, j), patchWidth);
+        
+        % calculate gradient of image patch
+        [gradPatchMag, gradPatchDir] = imgradient(tempPatch);
+        
+        % calculate histogram of gradient
+        nbins = 36;
+        [N, edges] = histcounts(gradPatchDir, nbins);
+        % find orientation of the image patch based on maximum value of
+        % gradient
+        [maxValue, maxIndex]=max(N);
+        patchTheta = 2*pi/nbins*maxIndex - pi;
+        % normalize orientation
+        correctImage = imrotate(tempImage, -(patchTheta/(2*pi)*360));
+        
+        % ---- rotate the point ----
+        temp_x = points(1, j) - size(tempImage, 2) / 2;
+        temp_y = points(2, j) - size(tempImage, 1) / 2;
+        
+        R_temp = [cos(patchTheta) -sin(patchTheta);sin(patchTheta) cos(patchTheta)];
+        
+        correctPoint = R_temp*[temp_x;temp_y];
+
+        correctPoint(1, 1) = correctPoint(1, 1) + size(correctImage, 2) / 2;
+        correctPoint(2, 1) = correctPoint(2, 1) + size(correctImage, 1) / 2;
+        correctPoint = round(correctPoint);
+        % --------------------------
+        
+        patches{K*(i-1)+j} = getPatch(correctImage, correctPoint, patchWidth);
+                
         patches{K*(i-1)+j} = imgaussfilt(imnoise(patches{K*(i-1)+j}, 'gaussian', 0, 0.01));
+        
+        subplot(1,2,1), imshow(tempPatch)
+        subplot(1,2,2), imshow(patches{K*(i-1)+j})
+        drawnow
+        
     end
 end
+
+% figure(2);
+% subplot(2,2,1), imshow(patches{K})
+% subplot(2,2,2), imshow(patches{2*K})
+% subplot(2,2,3), imshow(patches{3*K})
+% subplot(2,2,4), imshow(patches{4*K})
 
 % figure(1);
 % imshow(original_img); hold on;
@@ -124,8 +150,4 @@ end
 % imshow(original_img); hold on;
 % scatter(ref_points(:, 1), ref_points(:, 2));
 
-% construct random tree
-
-depth = 10;
-
-tree = cell((3^(depth+1) - 1)/2, 1);
+save('imagePatches.mat', 'patches');
