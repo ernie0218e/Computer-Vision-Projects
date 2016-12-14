@@ -13,7 +13,7 @@ ref_points = detectHarrisFeatures(gray_img);
 ref_points = ref_points.Location;
 
 % size of generated view set
-times = 10;
+times = 100;
 
 % store affine transformation matrix
 transformations = cell(times, 1);
@@ -84,7 +84,7 @@ for i = 1:times
     temp_x = selected_points(:, 1) - size(gray_img, 2) / 2;
     temp_y = selected_points(:, 2) - size(gray_img, 1) / 2;
     
-    points = A'*[temp_x';temp_y';ones(1, K)];
+    points = A*[temp_x';temp_y';ones(1, K)];
     
     points(1, :) = points(1, :) + size(tempImage, 2) / 2;
     points(2, :) = points(2, :) + size(tempImage, 1) / 2;
@@ -111,16 +111,21 @@ for i = 1:times
                     end
                 end
             end
-            patches{K*(i-1)+j} = tempPatch;
         end
-        patches{K*(i-1)+j} = imnoise(patches{K*(i-1)+j}, 'gaussian', 0, 0.01);
+        patches{K*(i-1)+j} = imgaussfilt(imnoise(patches{K*(i-1)+j}, 'gaussian', 0, 0.01));
     end
 end
 
-figure(1);
-imshow(original_img); hold on;
-scatter(selected_points(:, 1), selected_points(:, 2));
+% figure(1);
+% imshow(original_img); hold on;
+% scatter(selected_points(:, 1), selected_points(:, 2));
+% 
+% figure(2);
+% imshow(original_img); hold on;
+% scatter(ref_points(:, 1), ref_points(:, 2));
 
-figure(2);
-imshow(original_img); hold on;
-scatter(ref_points(:, 1), ref_points(:, 2));
+% construct random tree
+
+depth = 10;
+
+tree = cell((3^(depth+1) - 1)/2, 1);
