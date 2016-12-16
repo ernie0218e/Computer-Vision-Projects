@@ -38,7 +38,7 @@ node{2} = pt_dm2;
 node{3} = [];
 root{1} = node;
 
-count = (3^(depth) - 1)/2 - 1;
+count = (3^(depth) - 1)/2;
 for k = 1:count
     
     node = tree{k};
