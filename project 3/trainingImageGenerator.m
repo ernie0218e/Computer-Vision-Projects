@@ -74,7 +74,7 @@ selected_points = ref_points(sortingIndices(1:K), :);
 
 patches = cell(K*times, 1);
 
-patchWidth = 33;
+patchWidth = 17;
 
 for i = 1:times
     A = transformations{i};
