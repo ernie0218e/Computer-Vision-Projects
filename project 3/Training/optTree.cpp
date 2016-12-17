@@ -97,27 +97,27 @@ void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resul
             {
                 max_entropy = -total_entropy;
                 
-                resultNode->(pt_dm1.x) = floor(i/patchWidth);
-                resultNode->(pt_dm1.y) = i % patchWidth);
+                resultNode->pt_dm1.x = floor(i/patchWidth);
+                resultNode->pt_dm1.y = i % patchWidth;
 
-                resultNode->(pt_dm2.x) = floor(j/patchWidth);
-                resultNode->(pt_dm2.y) = j % patchWidth);
+                resultNode->pt_dm2.x = floor(j/patchWidth);
+                resultNode->pt_dm2.y = j % patchWidth;
 
-                resultNode->(subset_left.dataIndices) = temp_subset_left_idx;
-                resultNode->(subset_left.label) = temp_subset_left_label;
+                resultNode->subset_left.dataIndices = temp_subset_left_idx;
+                resultNode->subset_left.label = temp_subset_left_label;
                 
-                resultNode->(subset_center.dataIndices) = temp_subset_center_idx;
-                resultNode->(subset_center.label) = temp_subset_center_label;
+                resultNode->subset_center.dataIndices = temp_subset_center_idx;
+                resultNode->subset_center.label = temp_subset_center_label;
                 
-                resultNode->(subset_right.dataIndices) = temp_subset_right_idx;
-                resultNode->(subset_right.label) = temp_subset_right_label;
+                resultNode->subset_right.dataIndices = temp_subset_right_idx;
+                resultNode->subset_right.label = temp_subset_right_label;
             }
         }
     }
 
-    resultNode->(pt_dm1.x) = resultNode->(pt_dm1.x) - (patchWidth+1)/2;
-    resultNode->(pt_dm1.y) = resultNode->(pt_dm1.y) - (patchWidth+1)/2;
+    resultNode->pt_dm1.x = resultNode->pt_dm1.x - (patchWidth+1)/2;
+    resultNode->pt_dm1.y = resultNode->pt_dm1.y - (patchWidth+1)/2;
 
-    resultNode->(pt_dm2.x) = resultNode->(pt_dm2.x) - (patchWidth+1)/2;
-    resultNode->(pt_dm2.y) = resultNode->(pt_dm2.y) - (patchWidth+1)/2;
+    resultNode->pt_dm2.x = resultNode->pt_dm2.x - (patchWidth+1)/2;
+    resultNode->pt_dm2.y = resultNode->pt_dm2.y - (patchWidth+1)/2;
 }
