@@ -38,7 +38,7 @@ void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resul
             // calculate entropy of subset in left child
             double denom = temp_subset_left_label.n_rows;
             double entropy = 0;
-            for (int c = 0;c < classNum;c++)
+            for (int c = 1;c <= classNum;c++)
             {
                 double num = 0;
                 for (int l = 0;l < temp_subset_left_label.n_rows;l++)
@@ -57,7 +57,7 @@ void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resul
             // calculate entropy of subset in center child
             denom = temp_subset_center_label.n_rows;
             entropy = 0;
-            for (int c = 0;c < classNum;c++)
+            for (int c = 1;c <= classNum;c++)
             {
                 double num = 0;
                 for (int l = 0;l < temp_subset_center_label.n_rows;l++)
@@ -76,7 +76,7 @@ void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resul
             // calculate entropy of subset in right child
             denom = temp_subset_right_label.n_rows;
             entropy = 0;
-            for (int c = 0;c < classNum;c++)
+            for (int c = 1;c <= classNum;c++)
             {
                 double num = 0;
                 for (int l = 0;l < temp_subset_right_label.n_rows;l++)
@@ -103,14 +103,14 @@ void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resul
                 resultNode->pt_dm2.x = floor(j/patchWidth);
                 resultNode->pt_dm2.y = j % patchWidth;
 
-                subsets[0].dataIndices = temp_subset_left_idx;
-                subsets[0].label = temp_subset_left_label;
+                subsets[0].data = new mat(patches.cols(temp_subset_left_idx));
+                subsets[0].label = new vec(temp_subset_left_label);
                 
-                subsets[1].dataIndices = temp_subset_center_idx;
-                subsets[1].label = temp_subset_center_label;
+                subsets[1].data = new mat(patches.cols(temp_subset_center_idx));
+                subsets[1].label = new vec(temp_subset_center_label);
                 
-                subsets[2].dataIndices = temp_subset_right_idx;
-                subsets[2].label = temp_subset_right_label;
+                subsets[2].data = new mat(patches.cols(temp_subset_right_idx));
+                subsets[2].label = new vec(temp_subset_right_label);
             }
         }
     }

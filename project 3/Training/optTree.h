@@ -12,8 +12,8 @@ struct Point{
 };
 
 struct Dataset{
-    uvec dataIndices;
-    vec label;
+    mat* data;
+    vec* label;
 };
 
 struct Node{
