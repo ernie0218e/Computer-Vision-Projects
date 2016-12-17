@@ -150,4 +150,15 @@ end
 % imshow(original_img); hold on;
 % scatter(ref_points(:, 1), ref_points(:, 2));
 
-save('imagePatches.mat', 'patches', 'K');
+D = patchWidth*patchWidth;
+imageNum = K*times;
+imagePatches = zeros(D, imageNum);
+for i = 1:imageNum
+    imagePatches(:, i) = reshape(patches{i}, D, 1);
+end
+
+save('imagePatches.mat', 'imagePatches', '-v7.3');
+
+label = repmat((1:K)', round(imageNum / K), 1);
+
+save('patchLabel.mat', 'label', '-v7.3');

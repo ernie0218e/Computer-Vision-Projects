@@ -2,19 +2,17 @@ clear;
 
 data = load('imagePatches.mat');
 
-patchWidth = size(data.patches{1}, 1);
-D = patchWidth*patchWidth;
-imageNum = size(data.patches, 1);
+patches = data.imagePatches;
 
-patches = zeros(D, imageNum);
-for i = 1:imageNum
-    patches(:, i) = reshape(data.patches{i}, D, 1);
-end
+patchWidth = sqrt(size(patches, 1));
+D = patchWidth*patchWidth;
+imageNum = size(patches, 2);
 
 % classNum = data.K;
 classNum =  200;
 
-label = repmat((1:classNum)', round(imageNum / classNum), 1);
+label = load('patchLabel.mat');
+label = label.label;
 
 % construct random tree
 depth = 5;

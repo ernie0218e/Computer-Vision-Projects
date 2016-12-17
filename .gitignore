@@ -7,3 +7,6 @@
 *.mat
 *.jpg
 *.zip
+*.json
+.vscode
+*.out*
