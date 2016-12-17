@@ -7,7 +7,7 @@ using namespace std;
 using namespace arma;
 
 
-void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resultNode)
+void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resultNode, Dataset* subsets)
 {
     int D = patches.n_rows;
     int I = patches.n_cols;
@@ -103,14 +103,14 @@ void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resul
                 resultNode->pt_dm2.x = floor(j/patchWidth);
                 resultNode->pt_dm2.y = j % patchWidth;
 
-                resultNode->subset_left.dataIndices = temp_subset_left_idx;
-                resultNode->subset_left.label = temp_subset_left_label;
+                subsets[0].dataIndices = temp_subset_left_idx;
+                subsets[0].label = temp_subset_left_label;
                 
-                resultNode->subset_center.dataIndices = temp_subset_center_idx;
-                resultNode->subset_center.label = temp_subset_center_label;
+                subsets[1].dataIndices = temp_subset_center_idx;
+                subsets[1].label = temp_subset_center_label;
                 
-                resultNode->subset_right.dataIndices = temp_subset_right_idx;
-                resultNode->subset_right.label = temp_subset_right_label;
+                subsets[2].dataIndices = temp_subset_right_idx;
+                subsets[2].label = temp_subset_right_label;
             }
         }
     }

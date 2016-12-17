@@ -19,9 +19,7 @@ struct Dataset{
 struct Node{
     Point pt_dm1;
     Point pt_dm2;
-    Dataset subset_left;
-    Dataset subset_center;
-    Dataset subset_right;
+    Dataset subset;
 };
 
-void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resultNode);
+void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resultNode, Dataset* subsets);
