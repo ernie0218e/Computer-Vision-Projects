@@ -30,6 +30,11 @@ public:
 	TreeNode ** childNodes;
 };
 
+struct Pair {
+	int label;
+	double lambda;
+};
+
 void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resultNode, Dataset* subsets);
 
 #endif

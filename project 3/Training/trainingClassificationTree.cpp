@@ -119,10 +119,58 @@ void testFullTree(mat& patches, vec& label, int classNum, int patchWidth, int de
 
 void testTree(mat& patches, vec& label, int classNum, int patchWidth, int depth)
 {
+	int treeNumber = 5;
+
+	TreeNode * roots = new TreeNode[treeNumber];
+
+	int I = patches.n_cols;
+
+	int batchSize = I / treeNumber;
+	int remainBatchSize = I % treeNumber;
+
+	for (int t = 0; t < treeNumber - 1; t++)
+	{
+		mat tempPatch = patches.cols(t*batchSize, (t + 1)*batchSize - 1);
+		vec tempLabel = label.rows(t*batchSize, (t + 1)*batchSize - 1);
+		treebuilder(tempPatch, tempLabel, classNum, patchWidth, depth, 0, &roots[t]);
+	}
+	mat tempPatch = patches.cols((treeNumber - 1)*batchSize, treeNumber*batchSize + remainBatchSize - 1);
+	vec tempLabel = label.rows((treeNumber - 1)*batchSize, treeNumber*batchSize + remainBatchSize - 1);
+	treebuilder(tempPatch, tempLabel, classNum, patchWidth, depth, 0, &roots[treeNumber - 1]);
+
+	fstream file;
+	file.open("error.txt", ios::out);
+	double errorRate = 0;
+	for (int i = 0; i < I; i++)
+	{
+		vec data = patches.col(i);
+		Pair * p = new Pair[treeNumber];
+		vec maxLabel = zeros<vec>(classNum);
+		for (int t = 0; t < treeNumber; t++)
+		{
+			p[t] = testTree(data, classNum, patchWidth, &roots[t]);
+			maxLabel(p[t].label)++;
+		}
+
+		if ( (maxLabel.index_max() + 1) != label(i))
+		{
+			errorRate++;
+		}
+		delete[]p;
+	}
+	cout << "Error rate: " << errorRate / I << endl;
+	file << "Error rate: " << errorRate / I << endl;
+	file.close();
+
+	/*
 	fstream file;
 	TreeNode root;
 	treebuilder(patches, label, classNum, patchWidth, depth, 0, &root);
-
+	
+	file.open("Posterior.txt", ios::out);
+	travelTree(file, classNum, patchWidth, depth, 0, &root);
+	file.close();
+	*/
 }
 
 int main()
@@ -142,7 +190,7 @@ int main()
 	int classNum =  200;
 	int patchWidth = sqrt(patches.n_rows);
 
-	int depth = 10;
+	int depth = 5;
 
 	//testFullTree(patches, label, classNum, patchWidth, depth);
 	testTree(patches, label, classNum, patchWidth, depth);
