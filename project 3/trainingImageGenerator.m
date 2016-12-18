@@ -13,7 +13,7 @@ ref_points = detectHarrisFeatures(gray_img);
 ref_points = ref_points.Location;
 
 % size of generated view set
-times = 500;
+times = 1000;
 
 % store affine transformation matrix
 transformations = cell(times, 1);

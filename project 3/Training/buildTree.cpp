@@ -60,8 +60,17 @@ void fullTreebuilder(mat& patches, vec& label, int classNum, int patchWidth, int
 int treebuilder(mat& patches, vec& label, int classNum, int patchWidth, int depth, int currentDepth, TreeNode * finalTree)
 {
 	int I = patches.n_cols;
-	if (currentDepth >= depth || I < 20)
+	if (currentDepth >= (depth - 1) || I < 20)
 	{
+		finalTree->node = new Node;
+		finalTree->childNodes = new TreeNode *[3];
+		for (int k = 0; k < 3; k++)
+		{
+			finalTree->childNodes[k] = nullptr;
+		}
+
+		finalTree->node->subset.data = new mat(patches);
+		finalTree->node->subset.label = new vec(label);
 		return 1;
 	}
 	else
@@ -86,32 +95,10 @@ int treebuilder(mat& patches, vec& label, int classNum, int patchWidth, int dept
 			finalTree->childNodes[k] = new TreeNode;
 			int val = treebuilder(*(subsets[k].data), *(subsets[k].label), classNum, patchWidth, depth,
 				currentDepth + 1, finalTree->childNodes[k]);
-			
-			if (val)
-			{
-				finalTree->childNodes[k] = nullptr;
-			}
 
 			delete subsets[k].data;
 			delete subsets[k].label;
 		}
-
-		int flag = 0;
-		for (int k = 0; k < 3; k++)
-		{
-			if (finalTree->childNodes[k] != nullptr)
-			{
-				flag = 1;
-				break;
-			}
-		}
-		
-		if (!flag)
-		{
-			finalTree->node->subset.data = new mat(patches);
-			finalTree->node->subset.label = new vec(label);
-		}
-
 
 		delete []subsets;
 		return 0;
@@ -178,8 +165,35 @@ Pair testTree(vec& data, int classNum, int patchWidth, TreeNode * finalTree)
 {
 	if (finalTree == nullptr)
 	{
-		Pair returnedP = { -1, 0.0 };
+		Pair returnedP = { -1, nullptr };
 		return returnedP;
+	}
+	else if (finalTree->childNodes[0] == nullptr)
+	{
+		double I = finalTree->node->subset.label->n_rows;
+		Pair maxP = { 0, nullptr };
+		maxP.lambda = new vec(classNum);
+		double maxVal = 0;
+		for (int c = 1; c <= classNum; c++)
+		{
+			double num = 0;
+			for (int l = 0; l < I; l++)
+			{
+				if ((*(finalTree->node->subset.label))(l) == c)
+				{
+					num = num + 1;
+				}
+			}
+			double lambda = num / I;
+
+			(*maxP.lambda)(c - 1) = lambda;
+
+			if (lambda > maxVal)
+			{
+				maxP.label = c;
+			}
+		}
+		return maxP;
 	}
 	else
 	{
@@ -194,7 +208,7 @@ Pair testTree(vec& data, int classNum, int patchWidth, TreeNode * finalTree)
 
 		int diff = data(dpt_1.x*patchWidth + dpt_1.y) - data(dpt_2.x*patchWidth + dpt_2.y);
 
-		Pair returnedP = { -1, 0.0 };
+		Pair returnedP = { -1, nullptr };
 
 		if (diff < -10)
 		{
@@ -209,30 +223,6 @@ Pair testTree(vec& data, int classNum, int patchWidth, TreeNode * finalTree)
 			returnedP = testTree(data, classNum, patchWidth, finalTree->childNodes[2]);
 		}
 
-		if (returnedP.label == -1)
-		{
-			double I = finalTree->node->subset.label->n_rows;
-			Pair maxP = { 0, 0.0 };
-			for (int c = 1; c <= classNum; c++)
-			{
-				double num = 0;
-				for (int l = 0; l < I; l++)
-				{
-					if ((*(finalTree->node->subset.label))(l) == c)
-					{
-						num = num + 1;
-					}
-				}
-				double lambda = num / I;
-
-				if (lambda > maxP.lambda)
-				{
-					maxP.lambda = lambda;
-					maxP.label = c;
-				}
-			}
-			returnedP = maxP;
-		}
 		return returnedP;
 	}
 }

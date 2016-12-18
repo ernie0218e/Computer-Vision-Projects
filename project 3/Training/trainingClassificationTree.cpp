@@ -119,7 +119,7 @@ void testFullTree(mat& patches, vec& label, int classNum, int patchWidth, int de
 
 void testTree(mat& patches, vec& label, int classNum, int patchWidth, int depth)
 {
-	int treeNumber = 5;
+	int treeNumber = 2;
 
 	TreeNode * roots = new TreeNode[treeNumber];
 
@@ -145,14 +145,14 @@ void testTree(mat& patches, vec& label, int classNum, int patchWidth, int depth)
 	{
 		vec data = patches.col(i);
 		Pair * p = new Pair[treeNumber];
-		vec maxLabel = zeros<vec>(classNum);
+		vec lambda = zeros<vec>(classNum);
 		for (int t = 0; t < treeNumber; t++)
 		{
 			p[t] = testTree(data, classNum, patchWidth, &roots[t]);
-			maxLabel(p[t].label)++;
+			lambda = lambda + (*p[t].lambda);
 		}
 
-		if ( (maxLabel.index_max() + 1) != label(i))
+		if ( (lambda.index_max() + 1) != label(i))
 		{
 			errorRate++;
 		}
@@ -177,8 +177,8 @@ int main()
 {
 	srand(time(NULL));
 
-	string imagePatchFilename = "imagePatches.mat";
-	string patchLabelFilename = "patchLabel.mat";
+	string imagePatchFilename = "imagePatches_100K.mat";
+	string patchLabelFilename = "patchLabel_100K.mat";
 
   
 	mat patches;
@@ -190,7 +190,7 @@ int main()
 	int classNum =  200;
 	int patchWidth = sqrt(patches.n_rows);
 
-	int depth = 5;
+	int depth = 10;
 
 	//testFullTree(patches, label, classNum, patchWidth, depth);
 	testTree(patches, label, classNum, patchWidth, depth);
