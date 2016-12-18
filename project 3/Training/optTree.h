@@ -1,25 +1,35 @@
 #ifndef USE_ARMA
 #define USE_ARMA
 #include <armadillo>
-#endif
 
 using namespace std;
 using namespace arma;
 
-struct Point{
+class Point{
+public:
     int x;
     int y;
 };
 
-struct Dataset{
+class Dataset{
+public:
     mat* data;
     vec* label;
 };
 
-struct Node{
+class Node{
+public:
     Point pt_dm1;
     Point pt_dm2;
     Dataset subset;
 };
 
+class TreeNode {
+public:
+	Node * node;
+	TreeNode ** childNodes;
+};
+
 void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resultNode, Dataset* subsets);
+
+#endif
