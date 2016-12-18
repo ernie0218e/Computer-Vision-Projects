@@ -1,12 +1,13 @@
 [Tt]emp
+[Mm]akefile
 *.[Cc]ache
 *.bak
 *.log 
 *.DS_Store
 [Tt]humbs.db 
-*.mat
 *.jpg
 *.zip
 *.json
 .vscode
 *.out*
+*.o
