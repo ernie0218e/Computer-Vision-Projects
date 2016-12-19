@@ -35,6 +35,6 @@ struct Pair {
 	vec * lambda;
 };
 
-void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resultNode, Dataset* subsets);
+void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resultNode, Dataset* subsets, int currentDepth=0);
 
 #endif

@@ -86,7 +86,7 @@ int treebuilder(mat& patches, vec& label, int classNum, int patchWidth, int dept
 
 		finalTree->node = new Node;
 		
-		optTree(patches, label, classNum, patchWidth, finalTree->node, subsets);
+		optTree(patches, label, classNum, patchWidth, finalTree->node, subsets, currentDepth);
 
 		finalTree->childNodes = new TreeNode * [3];
 
@@ -107,54 +107,40 @@ int treebuilder(mat& patches, vec& label, int classNum, int patchWidth, int dept
 
 int travelTree(fstream& file, int classNum, int patchWidth, int depth, int currentDepth, TreeNode * finalTree)
 {
-	if (finalTree == nullptr)
+	if (finalTree->childNodes[0] == nullptr)
 	{
+		currentDepth = -1;
+		file << currentDepth << " ";
+		
+		// calculate posterior probability;
+		double I = finalTree->node->subset.label->n_rows;
+		double max = 0;
+		for (int c = 1; c <= classNum; c++)
+		{
+			double num = 0;
+			for (int l = 0; l < I; l++)
+			{
+				if ((*(finalTree->node->subset.label))(l) == c)
+				{
+					num = num + 1;
+				}
+			}
+			double lambda = num / I;
+			file << lambda << " ";
+		}
 		return 1;
 	}
 	else
 	{
 
+		Point dpt_1 = finalTree->node->pt_dm1;
+		Point dpt_2 = finalTree->node->pt_dm2;
+
+		file << currentDepth << " " << dpt_1.x << " " <<  dpt_1.y << " " << dpt_2.x << " " << dpt_2.y << endl;
+
 		for (int k = 0; k < 3; k++)
 		{
 			int val = travelTree(file, classNum, patchWidth, depth, currentDepth + 1, finalTree->childNodes[k]);
-		}
-
-		int flag = 0;
-		for (int k = 0; k < 3; k++)
-		{
-			if (finalTree->childNodes[k] != nullptr)
-			{
-				flag = 1;
-				break;
-			}
-		}
-
-		if (!flag)
-		{
-			// calculate posterior probability
-			int test = 0;
-			Dataset subset = finalTree->node->subset;
-			vec sublabel = *(subset.label);
-
-			double I = sublabel.n_rows;
-			double max = 0;
-			for (int c = 1; c <= classNum; c++)
-			{
-				double num = 0;
-				for (int l = 0; l < sublabel.n_rows; l++)
-				{
-					if ((sublabel)(l) == c)
-					{
-						num = num + 1;
-					}
-				}
-				double lambda = num / I;
-
-				if (lambda > max)
-					max = lambda;
-			}
-			cout << max << endl;
-			file << "max: " << max << endl;
 		}
 
 		return 0;
@@ -163,12 +149,7 @@ int travelTree(fstream& file, int classNum, int patchWidth, int depth, int curre
 
 Pair testTree(vec& data, int classNum, int patchWidth, TreeNode * finalTree)
 {
-	if (finalTree == nullptr)
-	{
-		Pair returnedP = { -1, nullptr };
-		return returnedP;
-	}
-	else if (finalTree->childNodes[0] == nullptr)
+	if (finalTree->childNodes[0] == nullptr)
 	{
 		double I = finalTree->node->subset.label->n_rows;
 		Pair maxP = { 0, nullptr };
@@ -224,5 +205,27 @@ Pair testTree(vec& data, int classNum, int patchWidth, TreeNode * finalTree)
 		}
 
 		return returnedP;
+	}
+}
+
+void uniqueRandom(int **value, int pointAmount, int randomMax)
+{
+	//generate unique four pts
+	(*value) = new int [pointAmount]; 
+	for (int m = 0;m < pointAmount;m++){
+		bool check; //variable to check or number is already used
+		int n; //variable to store the number in
+		do{
+			n=rand()%randomMax;
+			//check or number is already used:
+			check=true;
+			for (int j = 0;j < m;j++)
+				if (n == (*value)[j])
+				{
+					check=false; 
+					break; //no need to check the other elements of value[]
+				}
+		} while (!check); //loop until new, unique number is found
+		(*value)[m]=n; //store the generated number in the array
 	}
 }

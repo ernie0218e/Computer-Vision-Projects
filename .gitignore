@@ -14,3 +14,6 @@
 project 3/imagePatches_large.mat
 project 3/patchLabel.mat
 project 3/tree.mat
+
+project 3/Training/*.mat
+project 3/Training/*.txt

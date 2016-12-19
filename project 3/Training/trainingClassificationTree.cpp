@@ -119,14 +119,18 @@ void testFullTree(mat& patches, vec& label, int classNum, int patchWidth, int de
 
 void testTree(mat& patches, vec& label, int classNum, int patchWidth, int depth)
 {
-	int treeNumber = 2;
+	int treeNumber = 10;
 
 	TreeNode * roots = new TreeNode[treeNumber];
 
 	int I = patches.n_cols;
 
-	int batchSize = I / treeNumber;
-	int remainBatchSize = I % treeNumber;
+  /*
+  int batchSize = I / treeNumber;
+  int remainBatchSize = I % treeNumber;
+
+  int * randSeq;
+  uniqueRandom(&randSeq, I, I);
 
 	for (int t = 0; t < treeNumber - 1; t++)
 	{
@@ -137,6 +141,11 @@ void testTree(mat& patches, vec& label, int classNum, int patchWidth, int depth)
 	mat tempPatch = patches.cols((treeNumber - 1)*batchSize, treeNumber*batchSize + remainBatchSize - 1);
 	vec tempLabel = label.rows((treeNumber - 1)*batchSize, treeNumber*batchSize + remainBatchSize - 1);
 	treebuilder(tempPatch, tempLabel, classNum, patchWidth, depth, 0, &roots[treeNumber - 1]);
+  */
+  for (int t = 0; t < treeNumber; t++)
+	{
+		treebuilder(patches, label, classNum, patchWidth, depth, 0, &roots[t]);
+	}
 
 	fstream file;
 	file.open("error.txt", ios::out);
@@ -162,15 +171,14 @@ void testTree(mat& patches, vec& label, int classNum, int patchWidth, int depth)
 	file << "Error rate: " << errorRate / I << endl;
 	file.close();
 
-	/*
-	fstream file;
-	TreeNode root;
-	treebuilder(patches, label, classNum, patchWidth, depth, 0, &root);
-	
-	file.open("Posterior.txt", ios::out);
-	travelTree(file, classNum, patchWidth, depth, 0, &root);
-	file.close();
-	*/
+  file.open("tree.txt", ios::out);
+  for (int t = 0;t < treeNumber;t++)
+  {
+    file << t << endl;
+    travelTree(file, classNum, patchWidth, depth, 0, &roots[t]);
+  }
+  file.close();
+
 }
 
 int main()

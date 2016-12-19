@@ -8,7 +8,7 @@ using namespace std;
 using namespace arma;
 
 
-void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resultNode, Dataset* subsets)
+void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resultNode, Dataset* subsets, int currentDepth)
 {
 	if (patches.n_cols > 0)
 	{
@@ -18,7 +18,11 @@ void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resul
 		const double threshold = 10;
 		double max_entropy = -numeric_limits<double>::infinity();
 
-		const int times = 1000;
+		int times = 10;
+		if (currentDepth != 0)
+		{
+			times = 100*currentDepth;
+		}
 
 		for (int t = 0; t < times; t++)
 		{
