@@ -7,61 +7,14 @@
 using namespace std;
 using namespace arma;
 
-void fullTreebuilder(mat& patches, vec& label, int classNum, int patchWidth, int depth, Node ** finalTree)
-{
-	int treeSize = (pow(3, (depth + 1)) - 1) / 2.0;
-
-	cout << "Tree size: " << treeSize << endl;
-
-	Node * tree = new Node[treeSize];
-
-	Dataset * subsets = new Dataset[3];
-	for (int i = 0; i < 3; i++)
-	{
-		subsets[i].data = nullptr;
-		subsets[i].label = nullptr;
-	}
-
-	optTree(patches, label, classNum, patchWidth, &tree[0], subsets);
-
-	for (int k = 1; k <= 3; k++)
-	{
-		tree[k].subset = subsets[k - 1];
-	}
-
-	int count = (pow(3, (depth)) - 1) / 2.0;
-
-	cout << "count: " << count << endl;
-
-	for (int k = 1; k < count; k++)
-	{
-		cout << "k: " << k << endl;
-		cout << "col_s: " << (*(tree[k].subset.data)).n_cols << endl;
-		Dataset * subsets = new Dataset[3];
-		for (int i = 0; i < 3; i++)
-		{
-			subsets[i].data = nullptr;
-			subsets[i].label = nullptr;
-		}
-		optTree(*(tree[k].subset.data), *(tree[k].subset.label), classNum, patchWidth, &tree[k], subsets);
-
-		delete tree[k].subset.data;
-		delete tree[k].subset.label;
-
-		for (int j = 1; j <= 3; j++)
-		{
-			tree[3 * k + j].subset = subsets[j - 1];
-		}
-	}
-
-	finalTree = &tree;
-}
-
 int treebuilder(mat& patches, vec& label, int classNum, int patchWidth, int depth, int currentDepth, TreeNode * finalTree)
 {
 	int I = patches.n_cols;
-	if (currentDepth >= (depth - 1) || I < 20)
+	// if current depth reach the setting depth
+	// or there are too few data
+	if (currentDepth >= (depth) || I < 20)
 	{
+		// we have reached the leaf in the tree
 		finalTree->node = new Node;
 		finalTree->childNodes = new TreeNode *[3];
 		for (int k = 0; k < 3; k++)
@@ -71,12 +24,13 @@ int treebuilder(mat& patches, vec& label, int classNum, int patchWidth, int dept
 
 		finalTree->node->subset.data = new mat(patches);
 		finalTree->node->subset.label = new vec(label);
+		// save remaining data and label for calculating probability
+		// terminate
 		return 1;
 	}
 	else
 	{
-		cout << "currentDepth: " << currentDepth << endl;
-
+		// we still can generate more nodes
 		Dataset * subsets = new Dataset[3];
 		for (int i = 0; i < 3; i++)
 		{
@@ -86,18 +40,27 @@ int treebuilder(mat& patches, vec& label, int classNum, int patchWidth, int dept
 
 		finalTree->node = new Node;
 		
+		// find the best way to divide date into three parts
+		// and the decision rule of this node
 		optTree(patches, label, classNum, patchWidth, finalTree->node, subsets, currentDepth);
 
 		finalTree->childNodes = new TreeNode * [3];
 
+		// in the order of left, center, right
 		for (int k = 0; k < 3; k++)
 		{
 			finalTree->childNodes[k] = new TreeNode;
+
+			// grow this tree recursively
+			// depth first
 			int val = treebuilder(*(subsets[k].data), *(subsets[k].label), classNum, patchWidth, depth,
 				currentDepth + 1, finalTree->childNodes[k]);
 
-			delete subsets[k].data;
-			delete subsets[k].label;
+			// delete useless data
+			if (subsets[k].data != nullptr)
+				delete subsets[k].data;
+			if (subsets[k].label != nullptr)
+				delete subsets[k].label;
 		}
 
 		delete []subsets;
@@ -107,8 +70,10 @@ int treebuilder(mat& patches, vec& label, int classNum, int patchWidth, int dept
 
 int travelTree(fstream& file, int classNum, int patchWidth, int depth, int currentDepth, TreeNode * finalTree)
 {
+	// if we have reached the leaf
 	if (finalTree->childNodes[0] == nullptr)
 	{
+		// mark this node as a 'leaf' node
 		currentDepth = -1;
 		file << currentDepth << " ";
 		
@@ -126,20 +91,27 @@ int travelTree(fstream& file, int classNum, int patchWidth, int depth, int curre
 				}
 			}
 			double lambda = num / I;
+
+			// output the probability to file
 			file << lambda << " ";
 		}
 		return 1;
 	}
 	else
 	{
+		// we still can go deeper
 
 		Point dpt_1 = finalTree->node->pt_dm1;
 		Point dpt_2 = finalTree->node->pt_dm2;
 
+		// output current depth and the decision rule of this node
 		file << currentDepth << " " << dpt_1.x << " " <<  dpt_1.y << " " << dpt_2.x << " " << dpt_2.y << endl;
 
+		// in the order of left, center, right
 		for (int k = 0; k < 3; k++)
 		{
+			// travel all the node inside this tree
+			// go to next node
 			int val = travelTree(file, classNum, patchWidth, depth, currentDepth + 1, finalTree->childNodes[k]);
 		}
 
@@ -147,13 +119,14 @@ int travelTree(fstream& file, int classNum, int patchWidth, int depth, int curre
 	}
 }
 
-Pair testTree(vec& data, int classNum, int patchWidth, TreeNode * finalTree)
+vec * testTree(vec& data, int classNum, int patchWidth, TreeNode * finalTree)
 {
+	// if we have reached the leaf
 	if (finalTree->childNodes[0] == nullptr)
 	{
+		// calculate posterior probability of each class
 		double I = finalTree->node->subset.label->n_rows;
-		Pair maxP = { 0, nullptr };
-		maxP.lambda = new vec(classNum);
+		vec * lambda = new vec(classNum);
 		double maxVal = 0;
 		for (int c = 1; c <= classNum; c++)
 		{
@@ -165,67 +138,47 @@ Pair testTree(vec& data, int classNum, int patchWidth, TreeNode * finalTree)
 					num = num + 1;
 				}
 			}
-			double lambda = num / I;
+			double temp = num / I;
 
-			(*maxP.lambda)(c - 1) = lambda;
+			(*lambda)(c - 1) = temp;
 
-			if (lambda > maxVal)
-			{
-				maxP.label = c;
-			}
 		}
-		return maxP;
+		// return the probability
+		return lambda;
 	}
 	else
 	{
+		// we still can go deeper
 
+		// get the info of decision rule from this node.
 		Point dpt_1 = finalTree->node->pt_dm1;
 		Point dpt_2 = finalTree->node->pt_dm2;
 
-		dpt_1.x = dpt_1.x + (patchWidth + 1) / 2;
-		dpt_1.y = dpt_1.y + (patchWidth + 1) / 2;
-		dpt_2.x = dpt_2.x + (patchWidth + 1) / 2;
-		dpt_2.y = dpt_2.y + (patchWidth + 1) / 2;
+		dpt_1.x = dpt_1.x + (patchWidth - 1) / 2;
+		dpt_1.y = dpt_1.y + (patchWidth - 1) / 2;
+		dpt_2.x = dpt_2.x + (patchWidth - 1) / 2;
+		dpt_2.y = dpt_2.y + (patchWidth - 1) / 2;
 
+		// the decision rule is simply based on calculating the difference
+		// of image intensity
 		int diff = data(dpt_1.x*patchWidth + dpt_1.y) - data(dpt_2.x*patchWidth + dpt_2.y);
 
-		Pair returnedP = { -1, nullptr };
+		vec * lambda;
 
+		// decide which child node we should go.
 		if (diff < -10)
 		{
-			returnedP = testTree(data, classNum, patchWidth, finalTree->childNodes[0]);
+			lambda = testTree(data, classNum, patchWidth, finalTree->childNodes[0]);
 		}
 		else if (abs(diff) <= 10)
 		{
-			returnedP = testTree(data, classNum, patchWidth, finalTree->childNodes[1]);
+			lambda = testTree(data, classNum, patchWidth, finalTree->childNodes[1]);
 		}
 		else
 		{
-			returnedP = testTree(data, classNum, patchWidth, finalTree->childNodes[2]);
+			lambda = testTree(data, classNum, patchWidth, finalTree->childNodes[2]);
 		}
 
-		return returnedP;
-	}
-}
-
-void uniqueRandom(int **value, int pointAmount, int randomMax)
-{
-	//generate unique four pts
-	(*value) = new int [pointAmount]; 
-	for (int m = 0;m < pointAmount;m++){
-		bool check; //variable to check or number is already used
-		int n; //variable to store the number in
-		do{
-			n=rand()%randomMax;
-			//check or number is already used:
-			check=true;
-			for (int j = 0;j < m;j++)
-				if (n == (*value)[j])
-				{
-					check=false; 
-					break; //no need to check the other elements of value[]
-				}
-		} while (!check); //loop until new, unique number is found
-		(*value)[m]=n; //store the generated number in the array
+		return lambda;
 	}
 }

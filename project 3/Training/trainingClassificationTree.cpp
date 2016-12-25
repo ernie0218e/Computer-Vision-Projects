@@ -1,3 +1,5 @@
+// Filename: trainingClassificationTree.cpp
+// Purpose: traininig classification tree
 #include <iostream>
 #include <fstream>
 #include <armadillo>
@@ -10,198 +12,249 @@
 using namespace std;
 using namespace arma;
 
-void testFullTree(mat& patches, vec& label, int classNum, int patchWidth, int depth)
-{
-	fstream file;
-
-	int treeSize = (pow(3, (depth + 1)) - 1) / 2.0;
-	int count = (pow(3, (depth)) - 1) / 2.0;
-
-	Node * tree;
-	fullTreebuilder(patches, label, classNum, patchWidth, depth, &tree);
-
-	// calculate posterior probability
-	int test = 0;
-	file.open("Posterior.txt", ios::out);
-	for (int k = count; k < treeSize; k++)
-	{
-		cout << "k: " << k << endl;
-		Dataset subset = tree[k].subset;
-		vec sublabel = *(subset.label);
-
-		double I = sublabel.n_rows;
-		double max = 0;
-		for (int c = 1; c <= classNum; c++)
-		{
-			double num = 0;
-			for (int l = 0; l < sublabel.n_rows; l++)
-			{
-				if ((sublabel)(l) == c)
-				{
-					num = num + 1;
-				}
-			}
-			double lambda = num / I;
-
-			if (lambda > max)
-				max = lambda;
-		}
-		cout << max << endl;
-		if (max >= 0.5)
-			test++;
-		file << "max: " << max << endl;
-	}
-	file << test << endl;
-
-
-	double errorRate = 0;
-	int I = patches.n_cols;
-	for (int i = 0; i < I; i++)
-	{
-		vec data = patches.col(i);
-		int k = 0;
-		while (k < count)
-		{
-			Point dpt_1 = tree[k].pt_dm1;
-			Point dpt_2 = tree[k].pt_dm2;
-
-			dpt_1.x = dpt_1.x + (patchWidth + 1) / 2;
-			dpt_1.y = dpt_1.y + (patchWidth + 1) / 2;
-			dpt_2.x = dpt_2.x + (patchWidth + 1) / 2;
-			dpt_2.y = dpt_2.y + (patchWidth + 1) / 2;
-
-			int diff = data(dpt_1.x*patchWidth + dpt_1.y) - data(dpt_2.x*patchWidth + dpt_2.y);
-
-			if (diff < -10)
-			{
-				k = 3 * k + 1;
-			}
-			else if (abs(diff) <= 10)
-			{
-				k = 3 * k + 2;
-			}
-			else
-			{
-				k = 3 * k + 3;
-			}
-		}
-
-		double I = tree[k].subset.label->n_rows;
-		double max = 0;
-		int maxLabel = 0;
-		for (int c = 1; c <= classNum; c++)
-		{
-			double num = 0;
-			for (int l = 0; l < tree[k].subset.label->n_rows; l++)
-			{
-				if ((*(tree[k].subset.label))(l) == c)
-				{
-					num = num + 1;
-				}
-			}
-			double lambda = num / I;
-
-			if (lambda > max)
-			{
-				max = lambda;
-				maxLabel = c;
-			}
-		}
-
-		if (maxLabel != label(i))
-		{
-			errorRate++;
-		}
-	}
-	file << "Error rate: " << errorRate / I << endl;
-	file.close();
-}
-
+// Input: mat& patches - input training data (D x I)
+//		  vec& label - input label of training data (I x 1)
+//		  int classNum - number of class
+//		  int patchWidth - width of each patch (sqrt(D))
+//		  int depth - depth of each tree
 void testTree(mat& patches, vec& label, int classNum, int patchWidth, int depth)
 {
-	int treeNumber = 10;
+	int treeNumber = 20;
 
 	TreeNode * roots = new TreeNode[treeNumber];
 
 	int I = patches.n_cols;
 
-  /*
-  int batchSize = I / treeNumber;
-  int remainBatchSize = I % treeNumber;
-
-  int * randSeq;
-  uniqueRandom(&randSeq, I, I);
-
-	for (int t = 0; t < treeNumber - 1; t++)
+	// build 'treeNumber' trees
+	for (int t = 0; t < treeNumber; t++)
 	{
-		mat tempPatch = patches.cols(t*batchSize, (t + 1)*batchSize - 1);
-		vec tempLabel = label.rows(t*batchSize, (t + 1)*batchSize - 1);
-		treebuilder(tempPatch, tempLabel, classNum, patchWidth, depth, 0, &roots[t]);
-	}
-	mat tempPatch = patches.cols((treeNumber - 1)*batchSize, treeNumber*batchSize + remainBatchSize - 1);
-	vec tempLabel = label.rows((treeNumber - 1)*batchSize, treeNumber*batchSize + remainBatchSize - 1);
-	treebuilder(tempPatch, tempLabel, classNum, patchWidth, depth, 0, &roots[treeNumber - 1]);
-  */
-  for (int t = 0; t < treeNumber; t++)
-	{
+		cout << "Tree number: " << t + 1 << endl;
 		treebuilder(patches, label, classNum, patchWidth, depth, 0, &roots[t]);
 	}
 
 	fstream file;
 	file.open("error.txt", ios::out);
+
+	// test training error
 	double errorRate = 0;
 	for (int i = 0; i < I; i++)
 	{
+		// get 1 training data
 		vec data = patches.col(i);
-		Pair * p = new Pair[treeNumber];
+
+		// store the probability of each class
 		vec lambda = zeros<vec>(classNum);
 		for (int t = 0; t < treeNumber; t++)
 		{
-			p[t] = testTree(data, classNum, patchWidth, &roots[t]);
-			lambda = lambda + (*p[t].lambda);
+			// sum the probability of each class from different tree
+			vec * tempLambda = testTree(data, classNum, patchWidth, &roots[t]);
+			lambda = lambda + (*tempLambda);
+
+			delete tempLambda;
 		}
 
-		if ( (lambda.index_max() + 1) != label(i))
+		// normalize
+		lambda = lambda / treeNumber;
+
+		// error occurs
+		if ((lambda.index_max() + 1) != label(i))
 		{
 			errorRate++;
 		}
-		delete[]p;
 	}
+
 	cout << "Error rate: " << errorRate / I << endl;
 	file << "Error rate: " << errorRate / I << endl;
+
+	// load testing data
+	mat org;
+	org.load("imagePatches_orig.mat", hdf5_binary);
+	mat label_org;
+	label_org.load("patchLabel_orig.mat", hdf5_binary);
+
+	int num = org.n_cols;
+
+	// calculate testing error
+	// also test the effect of different threshold
+	double threshold = 1;
+	for (int k = 0; k < 9; k++)
+	{
+		// test testing error
+		errorRate = 0;
+		for (int i = 0; i < num; i++)
+		{
+			vec data = org.col(i);
+			vec lambda = zeros<vec>(classNum);
+			for (int t = 0; t < treeNumber; t++)
+			{
+				vec * tempLambda = testTree(data, classNum, patchWidth, &roots[t]);
+				// sum the probability of each class from different tree
+				lambda = lambda + (*tempLambda);
+				delete tempLambda;
+
+			}
+
+			lambda = lambda / treeNumber;
+
+			// sort probability of each class
+			uvec indices = sort_index(lambda, "descend");
+
+			// if (maximum value*threshold < second large value) --> (view that patch as background)
+			//	or (the index of maximum value != real label)
+			// error occurs
+			if (lambda(indices(1)) > threshold*lambda(indices(0)) || (((int)indices(0)+1) != label_org(i)))
+			{
+				errorRate = errorRate + 1;
+			}
+		}
+		cout << "Threshold: " << threshold << " Error rate: " << errorRate / num << endl;
+		file << "Threshold: " << threshold << " Error rate: " << errorRate / num << endl;
+		threshold = threshold - 0.1;
+	}
+
 	file.close();
 
-  file.open("tree.txt", ios::out);
-  for (int t = 0;t < treeNumber;t++)
-  {
-    file << t << endl;
-    travelTree(file, classNum, patchWidth, depth, 0, &roots[t]);
-  }
-  file.close();
+	// ouput the tree
+	  file.open("tree.txt", ios::out);
+	  file << treeNumber << endl;
+	  file << depth << endl;
+	  file << classNum << endl;
+	  for (int t = 0;t < treeNumber;t++)
+	  {
+		travelTree(file, classNum, patchWidth, depth, 0, &roots[t]);
+	  }
+	  file.close();
 
 }
+
+void testTree2(fstream& file, mat& patches, vec& label, int classNum, int patchWidth, int depth)
+{
+	
+	mat org;
+	org.load("imagePatches_orig.mat", hdf5_binary);
+	mat label_org;
+	label_org.load("patchLabel_orig.mat", hdf5_binary);
+	
+	int treeNumber = 20;
+
+	
+	cout << "Test Total Tree Number: " << treeNumber << endl;
+	file << "Test Total Tree Number: " << treeNumber << endl;
+
+	TreeNode * roots = new TreeNode[treeNumber];
+
+	int I = patches.n_cols;
+
+	for (int t = 0; t < treeNumber; t++)
+	{
+		cout << "Tree number: " << t + 1 << endl;
+		treebuilder(patches, label, classNum, patchWidth, depth, 0, &roots[t]);
+
+		double errorRate = 0;
+		for (int i = 0; i < I; i++)
+		{
+			vec data = patches.col(i);
+			vec lambda = zeros<vec>(classNum);
+			for (int tt = 0; tt <= t; tt++)
+			{
+				vec * tempLambda = testTree(data, classNum, patchWidth, &roots[tt]);
+				lambda = lambda + (*tempLambda);
+				delete tempLambda;
+			}
+
+			lambda = lambda / treeNumber;
+
+
+			if ((lambda.index_max() + 1) != label(i))
+			{
+				errorRate++;
+			}
+		}
+
+		cout << "Training Error rate: " << errorRate / I << endl;
+		file << "Training Error rate: " << errorRate / I << endl;
+
+
+		int num = org.n_cols;
+
+		double threshold = 1;
+
+		for (int k = 0; k < 9; k++)
+		{
+			errorRate = 0;
+			for (int i = 0; i < num; i++)
+			{
+				vec data = org.col(i);
+				vec lambda = zeros<vec>(classNum);
+				for (int tt = 0; tt <= t; tt++)
+				{
+					vec * tempLambda = testTree(data, classNum, patchWidth, &roots[tt]);
+					lambda = lambda + (*tempLambda);
+					delete tempLambda;
+				}
+
+				lambda = lambda / treeNumber;
+
+
+				uvec indices = sort_index(lambda, "descend");
+				if (lambda(indices(1)) > threshold*lambda(indices(0)) || (((int)indices(0) + 1) != label_org(i)))
+				{
+					errorRate = errorRate + 1;
+				}
+			}
+			cout << "Threshold: " << threshold << " Test Error rate: " << errorRate / num << endl;
+			file << "Threshold: " << threshold << " Test  Error rate: " << errorRate / num << endl;
+			threshold = threshold - 0.1;
+		}
+
+	}
+	delete[]roots;
+}
+
 
 int main()
 {
 	srand(time(NULL));
 
-	string imagePatchFilename = "imagePatches_100K.mat";
-	string patchLabelFilename = "patchLabel_100K.mat";
+	string imagePatchFilename = "imagePatches.mat";
+	string patchLabelFilename = "patchLabel.mat";
 
-  
+	cout << "imagePatchFilename: " << imagePatchFilename << endl;
+	cout << "patchLabelFilename: " <<  patchLabelFilename << endl;
+
+	fstream file;
+	
+	// load training data
 	mat patches;
 	patches.load(imagePatchFilename, hdf5_binary);
 
+	// load label of training data
 	vec label;
 	label.load(patchLabelFilename, hdf5_binary);
 
-	int classNum =  200;
+	// define number of classes
+	int classNum =  50;
+
+	// calculate width of patch
 	int patchWidth = sqrt(patches.n_rows);
 
+	// define depth of each tree
 	int depth = 10;
 
-	//testFullTree(patches, label, classNum, patchWidth, depth);
+	// generate and test classification tree
 	testTree(patches, label, classNum, patchWidth, depth);
-  
+
+	// Test only
+	/*
+	file.open("testData_10.txt", ios::out);
+	testTree2(file, patches, label, classNum, patchWidth, depth);
+	file.close();
+
+	depth = 5;
+	file.open("testData_5.txt", ios::out);
+	testTree2(file, patches, label, classNum, patchWidth, depth);
+	file.close();
+	*/
+
 	return 0;
 }

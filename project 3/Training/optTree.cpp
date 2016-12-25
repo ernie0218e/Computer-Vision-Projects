@@ -21,11 +21,13 @@ void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resul
 		int times = 10;
 		if (currentDepth != 0)
 		{
-			times = 100*currentDepth;
+			// calculate the number of iterations for optimaization
+			times = 200*currentDepth;
 		}
 
 		for (int t = 0; t < times; t++)
 		{
+			// randomly pick two distinct points in patch
 			int i = rand() % (D - 1);
 			int j = i + 1 + rand() % (D - i - 1);
 
@@ -39,6 +41,25 @@ void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resul
 			uvec temp_subset_left_idx = find(intensityDiff < -threshold);
 			uvec temp_subset_center_idx = find(abs(intensityDiff) <= threshold);
 			uvec temp_subset_right_idx = find(intensityDiff > threshold);
+
+			// if one of subset doesn't contain any data
+			// pick other points
+			while (temp_subset_left_idx.n_rows == 0 || temp_subset_center_idx.n_rows == 0 || temp_subset_right_idx.n_rows == 0)
+			{
+				i = rand() % (D - 1);
+				j = i + 1 + rand() % (D - i - 1);
+
+				temp_pixels_m1 = patches.row(i);
+				temp_pixels_m2 = patches.row(j);
+
+				// compute pixels difference
+				intensityDiff = (temp_pixels_m1 - temp_pixels_m2).t();
+
+				// decide which subset the data should belong to
+				temp_subset_left_idx = find(intensityDiff < -threshold);
+				temp_subset_center_idx = find(abs(intensityDiff) <= threshold);
+				temp_subset_right_idx = find(intensityDiff > threshold);
+			}
 
 			// get label of data in each subset
 			vec temp_subset_left_label = label.elem(temp_subset_left_idx);
@@ -102,11 +123,13 @@ void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resul
 			}
 			total_entropy = total_entropy + (double)temp_subset_right_label.n_rows / I*entropy;
 
-
+			// if the total entropy is greater than current maximum entropy
 			if (-total_entropy > max_entropy)
 			{
 				max_entropy = -total_entropy;
 
+				// this decision rule may be the best one
+				// store it!
 				resultNode->pt_dm1.x = floor(i / patchWidth);
 				resultNode->pt_dm1.y = i % patchWidth;
 
@@ -133,12 +156,11 @@ void optTree(mat& patches, vec& label, int classNum, int patchWidth, Node* resul
 			}
 		}
 
-		resultNode->pt_dm1.x = resultNode->pt_dm1.x - (patchWidth + 1) / 2;
-		resultNode->pt_dm1.y = resultNode->pt_dm1.y - (patchWidth + 1) / 2;
+		resultNode->pt_dm1.x = resultNode->pt_dm1.x - (patchWidth - 1) / 2;
+		resultNode->pt_dm1.y = resultNode->pt_dm1.y - (patchWidth - 1) / 2;
 
-		resultNode->pt_dm2.x = resultNode->pt_dm2.x - (patchWidth + 1) / 2;
-		resultNode->pt_dm2.y = resultNode->pt_dm2.y - (patchWidth + 1) / 2;
-		cout << "Max: " << max_entropy << endl;
+		resultNode->pt_dm2.x = resultNode->pt_dm2.x - (patchWidth - 1) / 2;
+		resultNode->pt_dm2.y = resultNode->pt_dm2.y - (patchWidth - 1) / 2;
 	}
 	else
 	{
