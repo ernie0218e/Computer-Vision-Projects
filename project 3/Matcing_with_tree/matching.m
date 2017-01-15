@@ -50,7 +50,7 @@ for idx = 1:500
     gray_frame = rgb2gray(frame);
     
     % detect Harris feature and get the locations of key points
-    selected_points = detectHarrisFeatures(gray_frame);
+    selected_points = detectSURFFeatures(gray_frame);
     selected_points = selected_points.Location;
 
     I = size(selected_points, 1);
@@ -87,7 +87,7 @@ for idx = 1:500
             -(patchTheta/(2*pi)*360));
 
         patch = getPatch(correctImage, round(selected_points(i, :)'), patchWidth);
-        patch = double(patch);
+        patch = int16(patch);
         patch = imgaussfilt(patch);
 
         % test patch

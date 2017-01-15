@@ -10,7 +10,7 @@ gray_img = rgb2gray(original_img);
 
 % detect harris features of original gray scale image
 % use these features as reference
-ref_points = detectHarrisFeatures(gray_img);
+ref_points = detectSURFFeatures(gray_img);
 
 ref_points = ref_points.Location;
 
@@ -51,7 +51,7 @@ for t = 1:times
     J = imnoise(J, 'gaussian', 0, 0.01);
         
     % detect harris feature
-    points = detectHarrisFeatures(J);
+    points = detectSURFFeatures(J);
     
     % ---- rotate the points ----
     temp_x = points.Location(:,1);
